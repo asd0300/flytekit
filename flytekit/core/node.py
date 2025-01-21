@@ -12,6 +12,7 @@ from flytekit.extras.accelerators import BaseAccelerator
 from flytekit.loggers import logger
 from flytekit.models import literals as _literal_models
 from flytekit.models.core import workflow as _workflow_model
+from flytekit.models.security import Secret as _secret
 from flytekit.models.task import Resources as _resources_model
 
 
@@ -67,6 +68,7 @@ class Node(object):
         self._resources: typing.Optional[_resources_model] = None
         self._extended_resources: typing.Optional[tasks_pb2.ExtendedResources] = None
         self._container_image: typing.Optional[str] = None
+        self._secret: typing.Optional[_secret] = None
 
     def runs_before(self, other: Node):
         """
@@ -191,9 +193,13 @@ class Node(object):
         cache: Optional[bool] = None,
         cache_version: Optional[str] = None,
         cache_serialize: Optional[bool] = None,
+        secret_requests: Optional[List[_secret]] = None,
         *args,
         **kwargs,
     ):
+        if secret_requests is not None:
+            assert_not_promise(secret_requests, "secret_requests")
+            self._secret = secret_requests
         if node_name is not None:
             # Convert the node name into a DNS-compliant.
             # https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
