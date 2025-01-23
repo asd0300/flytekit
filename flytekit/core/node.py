@@ -197,7 +197,6 @@ class Node(object):
         *args,
         **kwargs,
     ):
-        #
         if secret_requests is not None:
             assert_not_promise(secret_requests, "secret_requests")
             self._secret = secret_requests
