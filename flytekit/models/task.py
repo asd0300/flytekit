@@ -8,6 +8,7 @@ from flyteidl.core import literals_pb2 as _literals_pb2
 from flyteidl.core import tasks_pb2 as _core_task
 from google.protobuf import json_format as _json_format
 from google.protobuf import struct_pb2 as _struct
+from kubernetes.client import ApiClient
 
 from flytekit.models import common as _common
 from flytekit.models import interface as _interface
@@ -15,6 +16,9 @@ from flytekit.models import literals as _literals
 from flytekit.models import security as _sec
 from flytekit.models.core import identifier as _identifier
 from flytekit.models.documentation import Documentation
+
+if typing.TYPE_CHECKING:
+    from flytekit import PodTemplate
 
 
 class Resources(_common.FlyteIdlEntity):
@@ -1005,6 +1009,7 @@ class K8sPod(_common.FlyteIdlEntity):
         metadata: K8sObjectMetadata = None,
         pod_spec: typing.Dict[str, typing.Any] = None,
         data_config: typing.Optional[DataLoadingConfig] = None,
+        primary_container_name: typing.Optional[str] = None,
     ):
         """
         This defines a kubernetes pod target.  It will build the pod target during task execution
@@ -1012,6 +1017,7 @@ class K8sPod(_common.FlyteIdlEntity):
         self._metadata = metadata
         self._pod_spec = pod_spec
         self._data_config = data_config
+        self._primary_container_name = primary_container_name
 
     @property
     def metadata(self) -> K8sObjectMetadata:
@@ -1024,6 +1030,10 @@ class K8sPod(_common.FlyteIdlEntity):
     @property
     def data_config(self) -> typing.Optional[DataLoadingConfig]:
         return self._data_config
+
+    @property
+    def primary_container_name(self) -> typing.Optional[str]:
+        return self._primary_container_name
 
     def to_flyte_idl(self) -> _core_task.K8sPod:
         return _core_task.K8sPod(
@@ -1040,6 +1050,22 @@ class K8sPod(_common.FlyteIdlEntity):
             data_config=DataLoadingConfig.from_flyte_idl(pb2_object.data_config)
             if pb2_object.HasField("data_config")
             else None,
+        )
+
+    def to_pod_template(self) -> "PodTemplate":
+        from flytekit import PodTemplate
+
+        return PodTemplate(
+            labels=self.metadata.labels,
+            annotations=self.metadata.annotations,
+            pod_spec=self.pod_spec,
+        )
+
+    @classmethod
+    def from_pod_template(cls, pod_template: "PodTemplate") -> "K8sPod":
+        return cls(
+            metadata=K8sObjectMetadata(labels=pod_template.labels, annotations=pod_template.annotations),
+            pod_spec=ApiClient().sanitize_for_serialization(pod_template.pod_spec),
         )
 
 

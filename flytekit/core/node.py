@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from flyteidl.core import tasks_pb2
 
+from flytekit.core.pod_template import PodTemplate
 from flytekit.core.resources import Resources, convert_resources_to_resource_model
 from flytekit.core.utils import _dnsify
 from flytekit.extras.accelerators import BaseAccelerator
@@ -69,6 +70,7 @@ class Node(object):
         self._extended_resources: typing.Optional[tasks_pb2.ExtendedResources] = None
         self._container_image: typing.Optional[str] = None
         self._secret: typing.Optional[_secret] = None
+        self._pod_template: typing.Optional[PodTemplate] = None
 
     def runs_before(self, other: Node):
         """
@@ -194,6 +196,7 @@ class Node(object):
         cache_version: Optional[str] = None,
         cache_serialize: Optional[bool] = None,
         secret_requests: Optional[List[_secret]] = None,
+        pod_template: Optional[PodTemplate] = None,
         *args,
         **kwargs,
     ):
@@ -246,6 +249,10 @@ class Node(object):
             self._extended_resources = tasks_pb2.ExtendedResources(gpu_accelerator=accelerator.to_flyte_idl())
 
         self._override_node_metadata(name, timeout, retries, interruptible, cache, cache_version, cache_serialize)
+
+        if pod_template is not None:
+            assert_not_promise(pod_template, "podtemplate")
+            self._pod_template = pod_template
 
         return self
 
